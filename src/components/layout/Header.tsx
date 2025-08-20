@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Hotel, Menu, X, User, Calendar, Settings } from "lucide-react";
+import { Hotel, Menu, X, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'signup' }>({
+    isOpen: false,
+    mode: 'login'
+  });
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -51,13 +58,34 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
-              <User className="h-4 w-4 mr-2" />
-              Login
-            </Button>
-            <Button variant="default" size="sm" className="bg-gradient-hero hover:opacity-90">
-              Sign Up
-            </Button>
+            {user ? (
+              <>
+                <span className="text-sm font-medium">Welcome, {user.name}</span>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setAuthModal({ isOpen: true, mode: 'login' })}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Login
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="bg-gradient-hero hover:opacity-90"
+                  onClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -89,18 +117,46 @@ const Header = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-4 border-t">
-                <Button variant="ghost" size="sm" className="justify-start">
-                  <User className="h-4 w-4 mr-2" />
-                  Login
-                </Button>
-                <Button variant="default" size="sm" className="bg-gradient-hero">
-                  Sign Up
-                </Button>
+                {user ? (
+                  <>
+                    <span className="text-sm font-medium px-2">Welcome, {user.name}</span>
+                    <Button variant="ghost" size="sm" className="justify-start" onClick={logout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="justify-start"
+                      onClick={() => setAuthModal({ isOpen: true, mode: 'login' })}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Login
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="bg-gradient-hero"
+                      onClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
         )}
       </div>
+      
+      <AuthModal 
+        isOpen={authModal.isOpen}
+        onClose={() => setAuthModal({ ...authModal, isOpen: false })}
+        mode={authModal.mode}
+      />
     </header>
   );
 };
