@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, MapPin, Star, User, CreditCard, Clock, Phone, Mail, Edit } from "lucide-react";
 import { format } from "date-fns";
-import hotelRoom1 from "@/assets/hotel-room-1.jpg";
-import hotelRoom2 from "@/assets/hotel-room-2.jpg";
+// Using placeholder images for demo purposes
+const hotelRoom1 = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
+const hotelRoom2 = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();

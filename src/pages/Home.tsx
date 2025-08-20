@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import SearchBox from "@/components/ui/SearchBox";
 import HotelCard from "@/components/ui/HotelCard";
 import { Star, Award, Shield, Clock } from "lucide-react";
-import heroImage from "@/assets/hero-hotel.jpg";
-import hotelRoom1 from "@/assets/hotel-room-1.jpg";
-import hotelRoom2 from "@/assets/hotel-room-2.jpg";
-import hotelRoom3 from "@/assets/hotel-room-3.jpg";
+// Using placeholder images for demo purposes
+const heroImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=600&fit=crop";
+const hotelRoom1 = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
+const hotelRoom2 = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
+const hotelRoom3 = "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=400&h=300&fit=crop";
 
 const Home = () => {
   // Sample hotel data

@@ -4,9 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Star, MapPin, Wifi, Car, Coffee, Waves, Phone, Mail, Clock, Users } from "lucide-react";
-import hotelRoom1 from "@/assets/hotel-room-1.jpg";
-import hotelRoom2 from "@/assets/hotel-room-2.jpg";
-import hotelRoom3 from "@/assets/hotel-room-3.jpg";
+// Using placeholder images for demo purposes
+const hotelRoom1 = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
+const hotelRoom2 = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop";
+const hotelRoom3 = "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=400&h=300&fit=crop";
 
 const HotelDetail = () => {
   const { id } = useParams();
