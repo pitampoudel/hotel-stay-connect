@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { storage } from "@/utils/localStorage";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +22,9 @@ import hotelRoom1 from "@/assets/hotel-room-1.jpg";
 const Booking = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const roomId = searchParams.get("room") || "deluxe";
   
   const [checkIn, setCheckIn] = useState<Date>();
@@ -59,27 +65,48 @@ const Booking = () => {
 
   const handleBooking = () => {
     if (!checkIn || !checkOut || !firstName || !lastName || !email || !phone || !agreeTerms) {
-      alert("Please fill in all required fields and accept terms and conditions");
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields and accept terms and conditions",
+        variant: "destructive"
+      });
       return;
     }
     
-    // In real app, this would make API call to create booking
-    console.log("Booking details:", {
-      hotel: hotel.id,
-      room: roomId,
-      checkIn,
-      checkOut,
-      guests,
-      rooms,
-      firstName,
-      lastName,
-      email,
-      phone,
-      specialRequests,
-      totalAmount
-    });
-    
-    setShowConfirmation(true);
+    try {
+      // Create the booking
+      const newBooking = storage.addBooking({
+        hotelId: hotel.id,
+        hotelName: hotel.name,
+        location: hotel.location,
+        roomType: selectedRoom.name,
+        checkIn,
+        checkOut,
+        guests: parseInt(guests),
+        rooms: parseInt(rooms),
+        totalAmount,
+        status: 'confirmed',
+        guestName: `${firstName} ${lastName}`,
+        guestEmail: email,
+        guestPhone: phone,
+        specialRequests,
+        image: hotel.image,
+        rating: hotel.rating
+      });
+
+      toast({
+        title: "Booking Confirmed!",
+        description: `Your booking has been confirmed. Reference: ${newBooking.id}`,
+      });
+      
+      setShowConfirmation(true);
+    } catch (error) {
+      toast({
+        title: "Booking Failed",
+        description: "There was an error processing your booking. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -401,7 +428,10 @@ const Booking = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="justify-center">
-            <AlertDialogAction onClick={() => setShowConfirmation(false)}>
+            <AlertDialogAction onClick={() => {
+              setShowConfirmation(false);
+              navigate('/bookings');
+            }}>
               View My Bookings
             </AlertDialogAction>
           </AlertDialogFooter>

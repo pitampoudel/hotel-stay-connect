@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { storage, Hotel, Booking, User } from "@/utils/localStorage";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,106 +11,121 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Hotel, Users, Calendar, DollarSign, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Hotel as HotelIcon, Users, Calendar, DollarSign, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 const AdminDashboard = () => {
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [newHotel, setNewHotel] = useState({
+    name: "",
+    location: "",
+    rooms: "",
+    status: "active" as const,
+    description: ""
+  });
+  const { toast } = useToast();
 
-  // Sample data
+  // Load data from storage
+  useEffect(() => {
+    setHotels(storage.getHotels());
+    setBookings(storage.getBookings());
+    setUsers(storage.getUsers());
+  }, []);
+
+  // Calculate stats from actual data
   const stats = {
-    totalHotels: 15,
-    totalBookings: 234,
-    totalUsers: 892,
-    totalRevenue: 4567890
+    totalHotels: hotels.length,
+    totalBookings: bookings.length,
+    totalUsers: users.length,
+    totalRevenue: bookings.reduce((sum, booking) => sum + booking.totalAmount, 0)
   };
 
-  const recentBookings = [
-    {
-      id: "HTB123456",
-      guestName: "John Doe",
-      hotelName: "Grand Himalaya Hotel",
-      checkIn: new Date("2024-03-15"),
-      checkOut: new Date("2024-03-18"),
-      amount: 25500,
-      status: "confirmed"
-    },
-    {
-      id: "HTB123457",
-      guestName: "Jane Smith",
-      hotelName: "Royal Palace Resort",
-      checkIn: new Date("2024-03-16"),
-      checkOut: new Date("2024-03-19"),
-      amount: 36000,
-      status: "pending"
-    },
-    {
-      id: "HTB123458",
-      guestName: "Mike Johnson",
-      hotelName: "Business Central Hotel",
-      checkIn: new Date("2024-03-17"),
-      checkOut: new Date("2024-03-20"),
-      amount: 19500,
-      status: "confirmed"
-    }
-  ];
+  const recentBookings = bookings.slice(0, 5);
 
-  const hotels = [
-    {
-      id: "1",
-      name: "Grand Himalaya Hotel",
-      location: "Thamel, Kathmandu",
-      rooms: 45,
-      rating: 4.8,
-      status: "active"
-    },
-    {
-      id: "2",
-      name: "Royal Palace Resort",
-      location: "Lakeside, Pokhara",
-      rooms: 60,
-      rating: 4.6,
-      status: "active"
-    },
-    {
-      id: "3",
-      name: "Business Central Hotel",
-      location: "New Baneshwor, Kathmandu",
-      rooms: 30,
-      rating: 4.4,
-      status: "maintenance"
+  const handleAddHotel = () => {
+    if (!newHotel.name || !newHotel.location || !newHotel.rooms) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
     }
-  ];
 
-  const users = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@email.com",
-      phone: "+977-9841234567",
-      totalBookings: 5,
-      joinDate: new Date("2023-12-15"),
-      status: "active"
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@email.com",
-      phone: "+977-9851234567",
-      totalBookings: 3,
-      joinDate: new Date("2024-01-10"),
-      status: "active"
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike@email.com",
-      phone: "+977-9861234567",
-      totalBookings: 1,
-      joinDate: new Date("2024-02-20"),
-      status: "inactive"
+    try {
+      const hotel = storage.addHotel({
+        ...newHotel,
+        rooms: parseInt(newHotel.rooms),
+        rating: 4.0
+      });
+      
+      setHotels(prev => [...prev, hotel]);
+      setNewHotel({
+        name: "",
+        location: "",
+        rooms: "",
+        status: "active",
+        description: ""
+      });
+      
+      toast({
+        title: "Hotel Added",
+        description: "New hotel has been successfully added.",
+      });
+    } catch (error) {
+      toast({
+        title: "Add Failed",
+        description: "There was an error adding the hotel. Please try again.",
+        variant: "destructive"
+      });
     }
-  ];
+  };
+
+  const handleDeleteHotel = (hotelId: string) => {
+    try {
+      storage.deleteHotel(hotelId);
+      setHotels(prev => prev.filter(h => h.id !== hotelId));
+      
+      toast({
+        title: "Hotel Deleted",
+        description: "Hotel has been successfully deleted.",
+      });
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "There was an error deleting the hotel. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateBookingStatus = (bookingId: string, status: string) => {
+    try {
+      const updatedBooking = storage.updateBooking(bookingId, { 
+        status: status as any 
+      });
+      
+      if (updatedBooking) {
+        setBookings(prev => prev.map(b => 
+          b.id === bookingId ? updatedBooking : b
+        ));
+        
+        toast({
+          title: "Status Updated",
+          description: "Booking status has been updated.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "There was an error updating the booking status.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -151,7 +168,7 @@ const AdminDashboard = () => {
                       <p className="text-sm text-muted-foreground">Total Hotels</p>
                       <p className="text-2xl font-bold">{stats.totalHotels}</p>
                     </div>
-                    <Hotel className="h-8 w-8 text-primary" />
+                    <HotelIcon className="h-8 w-8 text-primary" />
                   </div>
                 </CardContent>
               </Card>
@@ -210,7 +227,7 @@ const AdminDashboard = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">Rs. {booking.amount.toLocaleString()}</p>
+                        <p className="font-bold">Rs. {booking.totalAmount.toLocaleString()}</p>
                         <Badge className={getStatusColor(booking.status)}>
                           {booking.status}
                         </Badge>
@@ -240,19 +257,38 @@ const AdminDashboard = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="hotelName">Hotel Name</Label>
-                      <Input id="hotelName" placeholder="Enter hotel name" />
+                      <Input 
+                        id="hotelName" 
+                        placeholder="Enter hotel name"
+                        value={newHotel.name}
+                        onChange={(e) => setNewHotel(prev => ({...prev, name: e.target.value}))}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="location">Location</Label>
-                      <Input id="location" placeholder="Enter location" />
+                      <Input 
+                        id="location" 
+                        placeholder="Enter location"
+                        value={newHotel.location}
+                        onChange={(e) => setNewHotel(prev => ({...prev, location: e.target.value}))}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="rooms">Number of Rooms</Label>
-                      <Input id="rooms" type="number" placeholder="Enter number of rooms" />
+                      <Input 
+                        id="rooms" 
+                        type="number" 
+                        placeholder="Enter number of rooms"
+                        value={newHotel.rooms}
+                        onChange={(e) => setNewHotel(prev => ({...prev, rooms: e.target.value}))}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
-                      <Select>
+                      <Select 
+                        value={newHotel.status} 
+                        onValueChange={(value) => setNewHotel(prev => ({...prev, status: value as any}))}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
@@ -265,12 +301,23 @@ const AdminDashboard = () => {
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="description">Description</Label>
-                      <Textarea id="description" placeholder="Enter hotel description" />
+                      <Textarea 
+                        id="description" 
+                        placeholder="Enter hotel description"
+                        value={newHotel.description}
+                        onChange={(e) => setNewHotel(prev => ({...prev, description: e.target.value}))}
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 mt-6">
-                    <Button variant="outline">Cancel</Button>
-                    <Button variant="hero">Add Hotel</Button>
+                    <Button variant="outline" onClick={() => setNewHotel({
+                      name: "",
+                      location: "",
+                      rooms: "",
+                      status: "active",
+                      description: ""
+                    })}>Cancel</Button>
+                    <Button variant="hero" onClick={handleAddHotel}>Add Hotel</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -309,7 +356,11 @@ const AdminDashboard = () => {
                             <Button variant="outline" size="sm">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="destructive" size="sm">
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeleteHotel(hotel.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -357,26 +408,36 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentBookings.map((booking) => (
+                    {bookings.map((booking) => (
                       <TableRow key={booking.id}>
                         <TableCell className="font-medium">{booking.id}</TableCell>
                         <TableCell>{booking.guestName}</TableCell>
                         <TableCell>{booking.hotelName}</TableCell>
                         <TableCell>{format(booking.checkIn, "MMM dd, yyyy")}</TableCell>
                         <TableCell>{format(booking.checkOut, "MMM dd, yyyy")}</TableCell>
-                        <TableCell>Rs. {booking.amount.toLocaleString()}</TableCell>
+                        <TableCell>Rs. {booking.totalAmount.toLocaleString()}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(booking.status)}>
-                            {booking.status}
-                          </Badge>
+                          <Select
+                            value={booking.status}
+                            onValueChange={(value) => handleUpdateBookingStatus(booking.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <Badge className={getStatusColor(booking.status)}>
+                                {booking.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="confirmed">Confirmed</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -422,17 +483,19 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phone}</TableCell>
-                        <TableCell>{user.totalBookings}</TableCell>
-                        <TableCell>{format(user.joinDate, "MMM dd, yyyy")}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(user.status)}>
-                            {user.status}
-                          </Badge>
+                    {users.map((user) => {
+                      const userBookings = bookings.filter(b => b.guestEmail === user.email);
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.profile.phone}</TableCell>
+                          <TableCell>{userBookings.length}</TableCell>
+                          <TableCell>{format(user.createdAt, "MMM dd, yyyy")}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor('active')}>
+                              active
+                            </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -445,7 +508,7 @@ const AdminDashboard = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                     )})}
                   </TableBody>
                 </Table>
               </CardContent>

@@ -1,10 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { storage, User } from '@/utils/localStorage';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -28,6 +24,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Load user from storage on mount
+  useEffect(() => {
+    const currentUser = storage.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, []);
+
   const login = (email: string, password: string): boolean => {
     setIsLoading(true);
     
@@ -35,11 +39,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTimeout(() => {
       // Simple validation - any email/password combo works for demo
       if (email && password) {
-        setUser({
-          id: '1',
-          name: email.split('@')[0],
-          email: email
-        });
+        // Check if user exists, otherwise create one
+        let existingUser = storage.getUsers().find(u => u.email === email);
+        
+        if (!existingUser) {
+          const name = email.split('@')[0];
+          existingUser = storage.addUser({
+            name,
+            email,
+            profile: {
+              firstName: name,
+              lastName: '',
+              email,
+              phone: '',
+              address: ''
+            }
+          });
+        }
+        
+        setUser(existingUser);
+        storage.setCurrentUser(existingUser);
         setIsLoading(false);
       }
     }, 1000);
@@ -53,11 +72,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Simulate API call delay
     setTimeout(() => {
       if (name && email && password) {
-        setUser({
-          id: '1',
-          name: name,
-          email: email
+        const newUser = storage.addUser({
+          name,
+          email,
+          profile: {
+            firstName: name.split(' ')[0] || name,
+            lastName: name.split(' ').slice(1).join(' ') || '',
+            email,
+            phone: '',
+            address: ''
+          }
         });
+        
+        setUser(newUser);
+        storage.setCurrentUser(newUser);
         setIsLoading(false);
       }
     }, 1000);
@@ -67,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    storage.setCurrentUser(null);
   };
 
   return (

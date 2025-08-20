@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { storage, Booking } from "@/utils/localStorage";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,57 +17,31 @@ import hotelRoom1 from "@/assets/hotel-room-1.jpg";
 import hotelRoom2 from "@/assets/hotel-room-2.jpg";
 
 const UserDashboard = () => {
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    firstName: "John",
-    lastName: "Doe", 
-    email: "john.doe@email.com",
-    phone: "+977-9841234567",
-    address: "Kathmandu, Nepal"
+    firstName: "",
+    lastName: "", 
+    email: "",
+    phone: "",
+    address: ""
   });
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
-  // Sample booking data
-  const bookings = [
-    {
-      id: "HTB123456",
-      hotelName: "Grand Himalaya Hotel",
-      location: "Thamel, Kathmandu",
-      roomType: "Deluxe Room",
-      checkIn: new Date("2024-03-15"),
-      checkOut: new Date("2024-03-18"),
-      guests: 2,
-      totalAmount: 25500,
-      status: "confirmed",
-      image: hotelRoom1,
-      rating: 4.8
-    },
-    {
-      id: "HTB123457",
-      hotelName: "Royal Palace Resort", 
-      location: "Lakeside, Pokhara",
-      roomType: "Executive Suite",
-      checkIn: new Date("2024-02-10"),
-      checkOut: new Date("2024-02-13"),
-      guests: 2,
-      totalAmount: 36000,
-      status: "completed",
-      image: hotelRoom2,
-      rating: 4.6
-    },
-    {
-      id: "HTB123458",
-      hotelName: "Mountain View Lodge",
-      location: "Nagarkot, Bhaktapur", 
-      roomType: "Standard Room",
-      checkIn: new Date("2024-04-20"),
-      checkOut: new Date("2024-04-22"),
-      guests: 1,
-      totalAmount: 19000,
-      status: "upcoming",
-      image: hotelRoom1,
-      rating: 4.7
+  // Load user data and bookings
+  useEffect(() => {
+    if (user) {
+      setProfile(user.profile);
+      // Get user's bookings
+      const allBookings = storage.getBookings();
+      const userBookings = allBookings.filter(b => 
+        b.guestEmail === user.email || b.guestName === user.name
+      );
+      setBookings(userBookings);
     }
-  ];
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -86,10 +64,72 @@ const UserDashboard = () => {
   };
 
   const handleProfileUpdate = () => {
-    // TODO: Implement profile update API call
-    console.log("Updating profile:", profile);
-    setIsEditing(false);
+    if (!user) return;
+    
+    try {
+      const updatedUser = storage.updateUser(user.id, {
+        ...user,
+        name: `${profile.firstName} ${profile.lastName}`,
+        email: profile.email,
+        profile
+      });
+      
+      if (updatedUser) {
+        storage.setCurrentUser(updatedUser);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been successfully updated.",
+        });
+      }
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  const handleCancelBooking = (bookingId: string) => {
+    try {
+      const cancelledBooking = storage.cancelBooking(bookingId);
+      if (cancelledBooking) {
+        // Update local state
+        setBookings(prev => prev.map(b => 
+          b.id === bookingId ? { ...b, status: 'cancelled' as const } : b
+        ));
+        
+        toast({
+          title: "Booking Cancelled",
+          description: "Your booking has been successfully cancelled.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Cancellation Failed",
+        description: "There was an error cancelling your booking. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBookAgain = (booking: Booking) => {
+    navigate(`/hotels/${booking.hotelId}/book?room=${booking.roomType.toLowerCase().replace(' ', '')}`);
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Please login to view your dashboard</h1>
+          <button onClick={() => navigate('/')} className="text-primary hover:underline">
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -206,16 +246,31 @@ const UserDashboard = () => {
                         </div>
 
                         <div className="space-y-2 mt-4">
-                          <Button variant="outline" className="w-full" size="sm">
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            size="sm"
+                            onClick={() => navigate(`/hotels/${booking.hotelId}`)}
+                          >
                             View Details
                           </Button>
                           {booking.status === "upcoming" && (
-                            <Button variant="destructive" className="w-full" size="sm">
+                            <Button 
+                              variant="destructive" 
+                              className="w-full" 
+                              size="sm"
+                              onClick={() => handleCancelBooking(booking.id)}
+                            >
                               Cancel Booking
                             </Button>
                           )}
                           {booking.status === "completed" && (
-                            <Button variant="hero" className="w-full" size="sm">
+                            <Button 
+                              variant="hero" 
+                              className="w-full" 
+                              size="sm"
+                              onClick={() => handleBookAgain(booking)}
+                            >
                               Book Again
                             </Button>
                           )}
