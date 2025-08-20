@@ -15,7 +15,7 @@ const Hotels = () => {
   const [location, setLocation] = useState("");
   const [sortBy, setSortBy] = useState("popularity");
   const [priceRange, setPriceRange] = useState([0, 50000]);
-  const [minRating, setMinRating] = useState("");
+  const [minRating, setMinRating] = useState("any");
 
   // Sample hotel data
   const hotels = [
@@ -102,7 +102,7 @@ const Hotels = () => {
     const matchesLocation = !location || location === "All Locations" || 
                            hotel.location.toLowerCase().includes(location.toLowerCase());
     const matchesPrice = hotel.price >= priceRange[0] && hotel.price <= priceRange[1];
-    const matchesRating = !minRating || hotel.rating >= parseFloat(minRating);
+    const matchesRating = !minRating || minRating === "any" || hotel.rating >= parseFloat(minRating);
     
     return matchesSearch && matchesLocation && matchesPrice && matchesRating;
   });
@@ -184,7 +184,7 @@ const Hotels = () => {
                         <SelectValue placeholder="Any rating" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any rating</SelectItem>
+                        <SelectItem value="any">Any rating</SelectItem>
                         <SelectItem value="4.0">4.0+ stars</SelectItem>
                         <SelectItem value="4.5">4.5+ stars</SelectItem>
                         <SelectItem value="4.8">4.8+ stars</SelectItem>
@@ -200,7 +200,7 @@ const Hotels = () => {
                       setSearchTerm("");
                       setLocation("");
                       setPriceRange([0, 50000]);
-                      setMinRating("");
+                      setMinRating("any");
                     }}
                   >
                     Clear All Filters
@@ -259,7 +259,7 @@ const Hotels = () => {
                     setSearchTerm("");
                     setLocation("");
                     setPriceRange([0, 50000]);
-                    setMinRating("");
+                    setMinRating("any");
                   }}>
                     Clear All Filters
                   </Button>
