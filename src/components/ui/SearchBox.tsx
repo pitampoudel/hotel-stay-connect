@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const SearchBox = () => {
+  const navigate = useNavigate();
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
@@ -17,8 +19,15 @@ const SearchBox = () => {
   const [rooms, setRooms] = useState("1");
 
   const handleSearch = () => {
-    // TODO: Implement search functionality
-    console.log("Searching for:", { destination, checkIn, checkOut, guests, rooms });
+    const searchParams = new URLSearchParams();
+    
+    if (destination) searchParams.set('destination', destination);
+    if (checkIn) searchParams.set('checkIn', checkIn.toISOString());
+    if (checkOut) searchParams.set('checkOut', checkOut.toISOString());
+    if (guests) searchParams.set('guests', guests);
+    if (rooms) searchParams.set('rooms', rooms);
+    
+    navigate(`/hotels?${searchParams.toString()}`);
   };
 
   return (
