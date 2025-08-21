@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { Calendar as CalendarIcon, CreditCard, Users, Clock, MapPin, Star } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { EsewaPayment } from "@/components/payment/EsewaPayment";
 // Using placeholder images for demo purposes
 const hotelRoom1 = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400&h=300&fit=crop";
 
@@ -39,6 +40,7 @@ const Booking = () => {
   const [specialRequests, setSpecialRequests] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   // Sample hotel and room data
   const hotel = {
@@ -74,6 +76,10 @@ const Booking = () => {
       return;
     }
     
+    setShowPayment(true);
+  };
+
+  const handlePaymentSuccess = (transactionId: string) => {
     try {
       // Create the booking
       const newBooking = storage.addBooking({
@@ -92,7 +98,9 @@ const Booking = () => {
         guestPhone: phone,
         specialRequests,
         image: hotel.image,
-        rating: hotel.rating
+        rating: hotel.rating,
+        paymentMethod: 'eSewa',
+        transactionId
       });
 
       toast({
@@ -100,6 +108,7 @@ const Booking = () => {
         description: `Your booking has been confirmed. Reference: ${newBooking.id}`,
       });
       
+      setShowPayment(false);
       setShowConfirmation(true);
     } catch (error) {
       toast({
@@ -108,6 +117,10 @@ const Booking = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
   };
 
   return (
@@ -396,14 +409,14 @@ const Booking = () => {
                     <span className="text-primary">Rs. {totalAmount.toLocaleString()}</span>
                   </div>
 
-                  <Button 
-                    onClick={handleBooking}
-                    variant="hero" 
-                    className="w-full mt-6"
-                    size="lg"
-                  >
-                    Proceed to Payment
-                  </Button>
+                   <Button 
+                     onClick={handleBooking}
+                     variant="hero" 
+                     className="w-full mt-6"
+                     size="lg"
+                   >
+                     Proceed to Payment
+                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center mt-3">
                     Secure payment powered by eSewa • Free cancellation within 24 hours
@@ -414,6 +427,18 @@ const Booking = () => {
           </div>
         </div>
       </div>
+
+      {/* eSewa Payment Modal */}
+      {showPayment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <EsewaPayment
+            amount={totalAmount}
+            productName={`${hotel.name} - ${selectedRoom.name}`}
+            onSuccess={handlePaymentSuccess}
+            onCancel={handlePaymentCancel}
+          />
+        </div>
+      )}
 
       {/* Booking Confirmation Dialog */}
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>

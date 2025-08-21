@@ -16,6 +16,8 @@ export interface Booking {
   specialRequests?: string;
   image: string;
   rating: number;
+  paymentMethod?: string;
+  transactionId?: string;
   createdAt: Date;
 }
 
